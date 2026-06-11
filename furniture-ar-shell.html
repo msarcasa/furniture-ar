@@ -184,7 +184,7 @@ const DIMS = { w: 2.67, d: 2.03, h: 0.94 };
 // Calibrated per model. This file's front sits a quarter-turn off:
 // if placement comes up rotated 90 deg the wrong way, flip the sign
 // of this one value (Math.PI / 2  <->  -Math.PI / 2).
-const FRONT_OFFSET = Math.PI / 2;
+const FRONT_OFFSET = -Math.PI / 2;
 
 /* ---- DOM ---- */
 const enterBtn    = document.getElementById('enterAR');
