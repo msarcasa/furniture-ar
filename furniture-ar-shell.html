@@ -307,6 +307,7 @@ let reticle=null, hitTestSource=null, transientHitSource=null, refSpace=null;
 let sofaGroup=null, ropeMesh=null, ropeAnchor=null;
 let localBox=null;                       // sofa's box in group-local space
 let outlinePts=null;                     // floor outline points (group-local)
+let anchorLocal=null;                    // fixed rope anchor (group-local)
 let twoFinger=false, lastAngle=0;
 let dragActive=false, lastHitPose=null;
 let dragStartHit=null;                   // floor point where the drag began
@@ -446,6 +447,7 @@ function placeSofa() {
       fp.mesh.position.y = 0.006;
       sofaGroup.add(fp.mesh);
       outlinePts = fp.pts;
+      anchorLocal = computeFrontAnchor(outlinePts, localBox);
     }
 
     scene.add(sofaGroup);
@@ -582,6 +584,47 @@ function buildRibbon(pts, width) {
   return new THREE.Mesh(geo, mat);
 }
 
+/* Fixed rope anchor: the front-centre of the sofa, ON its outline.
+   "Front" comes from FRONT_OFFSET, so this is standard for every model:
+   cast a ray from the outline's centroid along the front direction and
+   take the outermost boundary crossing. */
+function computeFrontAnchor(pts, box) {
+  let cx = 0, cz = 0;
+  for (const p of pts) { cx += p.x; cz += p.z; }
+  cx /= pts.length; cz /= pts.length;
+
+  // local front direction implied by FRONT_OFFSET
+  const fx = -Math.sin(FRONT_OFFSET), fz = Math.cos(FRONT_OFFSET);
+
+  let bestT = -1, ax2 = cx, az2 = cz;
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], b = pts[(i + 1) % n];
+    const ex = b.x - a.x, ez = b.z - a.z;
+    // solve centroid + t*front = a + s*edge   (2x2 linear system)
+    const det = fx * (-ez) - fz * (-ex);
+    if (Math.abs(det) < 1e-9) continue;     // parallel
+    const rx = a.x - cx, rz = a.z - cz;
+    const t = (rx * (-ez) - rz * (-ex)) / det;
+    const s = (fx * rz - fz * rx) / det;
+    if (t > 0 && s >= 0 && s <= 1 && t > bestT) {
+      bestT = t;
+      ax2 = cx + fx * t;
+      az2 = cz + fz * t;
+    }
+  }
+  if (bestT < 0) {
+    // fallback: the outline point furthest along the front direction
+    let best = -Infinity;
+    for (const p of pts) {
+      const d = p.x * fx + p.z * fz;
+      if (d > best) { best = d; ax2 = p.x; az2 = p.z; }
+    }
+  }
+  const y = Math.min(box.max.y * 0.5, 0.5);  // roughly seat height
+  return new THREE.Vector3(ax2, y, az2);
+}
+
 /* Lowest reliable point of the mesh, ignoring stray outlier vertices */
 function robustBaseY(model, fallback) {
   const ys = [];
@@ -704,27 +747,10 @@ function onXRFrame(t, frame) {
   tmpPos.set(cp.x, cp.y, cp.z);
   lastCam.copy(tmpPos);
 
-  // rope: from below the phone to the nearest point ON the sofa's outline
-  if (sofaGroup && ropeMesh && outlinePts && localBox) {
-    localCam.copy(tmpPos);
-    sofaGroup.worldToLocal(localCam);
-
-    // nearest point on the L-shaped outline polygon (XZ plane)
-    let bestD = Infinity;
-    const n = outlinePts.length;
-    for (let i = 0; i < n; i++) {
-      const a = outlinePts[i], b = outlinePts[(i + 1) % n];
-      const abx = b.x - a.x, abz = b.z - a.z;
-      const L2 = abx*abx + abz*abz;
-      let t = L2 > 0 ? ((localCam.x - a.x)*abx + (localCam.z - a.z)*abz) / L2 : 0;
-      t = Math.max(0, Math.min(1, t));
-      const qx = a.x + abx*t, qz = a.z + abz*t;
-      const d = (localCam.x-qx)*(localCam.x-qx) + (localCam.z-qz)*(localCam.z-qz);
-      if (d < bestD) { bestD = d; nearestPt.set(qx, 0, qz); }
-    }
-    // measure at a natural height on the sofa's side
-    nearestPt.y = Math.min(Math.max(localCam.y, 0.08), localBox.max.y * 0.75);
-    sofaGroup.localToWorld(nearestPt);
+  // rope: from below the phone to the sofa's FIXED front-centre point
+  if (sofaGroup && ropeMesh && anchorLocal) {
+    nearestPt.copy(anchorLocal);
+    sofaGroup.localToWorld(nearestPt);   // stays glued through moves & rotations
     ropeAnchor.position.copy(nearestPt);
 
     const dist = tmpPos.distanceTo(nearestPt);
@@ -762,7 +788,7 @@ function cleanupAR() {
   hitTestSource = null; transientHitSource = null;
   scene = null; camera = null; reticle = null;
   sofaGroup = null; ropeMesh = null; ropeAnchor = null;
-  localBox = null; dragStartHit = null; outlinePts = null;
+  localBox = null; dragStartHit = null; outlinePts = null; anchorLocal = null;
   twoFinger = false; dragActive = false; lastHitPose = null;
   reticleHint.style.opacity = '1';
   reticleHint.textContent = 'Move your phone slowly to find the floor';
