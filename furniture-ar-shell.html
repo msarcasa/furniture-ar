@@ -306,6 +306,7 @@ let session=null, renderer=null, scene=null, camera=null;
 let reticle=null, hitTestSource=null, transientHitSource=null, refSpace=null;
 let sofaGroup=null, ropeMesh=null, ropeAnchor=null;
 let localBox=null;                       // sofa's box in group-local space
+let outlinePts=null;                     // floor outline points (group-local)
 let twoFinger=false, lastAngle=0;
 let dragActive=false, lastHitPose=null;
 let dragStartHit=null;                   // floor point where the drag began
@@ -379,16 +380,20 @@ overlay.addEventListener('beforexrselect', (e) => {
 });
 
 /* Two-finger twist = rotate the sofa */
-overlay.addEventListener('touchstart', (e) => {
+/* Two-finger twist = rotate. Listen on document with capture —
+   the overlay has pointer-events:none, so events never reach it. */
+document.addEventListener('touchstart', (e) => {
+  if (!session) return;
   if (e.touches.length === 2) {
-    twoFinger = true; dragStartHit = null;
+    twoFinger = true; dragStartHit = null; dragActive = false;
     lastAngle = Math.atan2(
       e.touches[1].clientY - e.touches[0].clientY,
       e.touches[1].clientX - e.touches[0].clientX
     );
   }
-}, {passive:true});
-overlay.addEventListener('touchmove', (e) => {
+}, {capture:true, passive:true});
+document.addEventListener('touchmove', (e) => {
+  if (!session) return;
   if (twoFinger && e.touches.length === 2 && sofaGroup) {
     const a = Math.atan2(
       e.touches[1].clientY - e.touches[0].clientY,
@@ -397,13 +402,14 @@ overlay.addEventListener('touchmove', (e) => {
     sofaGroup.rotation.y -= (a - lastAngle);
     lastAngle = a;
   }
-}, {passive:true});
-overlay.addEventListener('touchend', (e) => {
+}, {capture:true, passive:true});
+document.addEventListener('touchend', (e) => {
+  if (!session) return;
   if (e.touches.length < 2) {
     twoFinger = false; dragStartHit = null;
     if (sofaGroup) sofaStartPos.copy(sofaGroup.position);
   }
-}, {passive:true});
+}, {capture:true, passive:true});
 
 /* ---- PLACE / ANCHOR ---- */
 function placeSofa() {
@@ -423,7 +429,10 @@ function placeSofa() {
     const bb = new THREE.Box3().setFromObject(sofa);
     const c  = bb.getCenter(new THREE.Vector3());
     const sz = bb.getSize(new THREE.Vector3());
-    sofa.position.set(-c.x, -bb.min.y, -c.z);
+    // robust base: stray vertices below the real feet would float the
+    // whole sofa, so take the 0.3% height quantile instead of the minimum
+    const baseY = robustBaseY(sofa, bb.min.y);
+    sofa.position.set(-c.x, -baseY, -c.z);
     sofa.updateMatrixWorld(true);
     // the sofa's own box in group-local space (centred, base at y=0)
     localBox = new THREE.Box3(
@@ -432,8 +441,12 @@ function placeSofa() {
     );
 
     // true floor outline of THIS shape (L-shaped if the sofa is)
-    const outline = buildFootprintOutline(sofa);
-    if (outline) { outline.position.y = 0.006; sofaGroup.add(outline); }
+    const fp = buildFootprintOutline(sofa);
+    if (fp) {
+      fp.mesh.position.y = 0.006;
+      sofaGroup.add(fp.mesh);
+      outlinePts = fp.pts;
+    }
 
     scene.add(sofaGroup);
     buildRope();
@@ -533,11 +546,59 @@ function buildFootprintOutline(model) {
     return new THREE.Vector3(minX + Number(parts[0])*res, 0, minZ + Number(parts[1])*res);
   });
   // straighten the staircase: Douglas-Peucker simplification
-  const pts3 = simplifyOutline(rawPts, 0.035);
-  pts3.push(pts3[0].clone());
-  const geo = new THREE.BufferGeometry().setFromPoints(pts3);
-  const mat = new THREE.LineBasicMaterial({ color: 0xcda35e, transparent:true, opacity:0.95 });
-  return new THREE.Line(geo, mat);
+  const pts3 = simplifyOutline(rawPts, 0.05);
+  if (pts3.length < 3) return null;
+  return { mesh: buildRibbon(pts3, 0.028), pts: pts3 };
+}
+
+/* A flat brass ribbon along the outline — WebGL lines are stuck at 1px,
+   so visible thickness needs real geometry. */
+function buildRibbon(pts, width) {
+  const hw = width / 2;
+  const verts = [];
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], b = pts[(i + 1) % n];
+    let dx = b.x - a.x, dz = b.z - a.z;
+    const L = Math.hypot(dx, dz);
+    if (L < 1e-6) continue;
+    dx /= L; dz /= L;
+    const px = -dz * hw, pz = dx * hw;       // perpendicular
+    const ex = dx * hw,  ez = dz * hw;       // extend ends to fill corners
+    const ax = a.x - ex, az = a.z - ez;
+    const bx = b.x + ex, bz = b.z + ez;
+    // two triangles per segment
+    verts.push(
+      ax - px, 0, az - pz,   ax + px, 0, az + pz,   bx + px, 0, bz + pz,
+      ax - px, 0, az - pz,   bx + px, 0, bz + pz,   bx - px, 0, bz - pz
+    );
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xcda35e, transparent: true, opacity: 0.85,
+    side: THREE.DoubleSide, depthWrite: false
+  });
+  return new THREE.Mesh(geo, mat);
+}
+
+/* Lowest reliable point of the mesh, ignoring stray outlier vertices */
+function robustBaseY(model, fallback) {
+  const ys = [];
+  const v = new THREE.Vector3();
+  model.traverse(o => {
+    if (o.isMesh && o.geometry && o.geometry.attributes.position) {
+      const p = o.geometry.attributes.position, m = o.matrixWorld;
+      const step = Math.max(1, Math.floor(p.count / 20000));
+      for (let i = 0; i < p.count; i += step) {
+        v.fromBufferAttribute(p, i).applyMatrix4(m);
+        ys.push(v.y);
+      }
+    }
+  });
+  if (ys.length < 100) return fallback;
+  ys.sort((a, b) => a - b);
+  return ys[Math.floor(ys.length * 0.003)];
 }
 
 /* Douglas-Peucker on the XZ plane */
@@ -574,7 +635,7 @@ function buildRope() {
   ropeMesh = new THREE.Mesh(geo, mat);
   ropeMesh.frustumCulled = false;
   scene.add(ropeMesh);
-  const dotGeo = new THREE.SphereGeometry(0.014, 12, 12);
+  const dotGeo = new THREE.SphereGeometry(0.009, 12, 12);
   ropeAnchor = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0xcda35e }));
   scene.add(ropeAnchor);
 }
@@ -643,18 +704,36 @@ function onXRFrame(t, frame) {
   tmpPos.set(cp.x, cp.y, cp.z);
   lastCam.copy(tmpPos);
 
-  // rope: from just below the phone to the NEAREST point on the sofa
-  if (sofaGroup && ropeMesh && localBox) {
+  // rope: from below the phone to the nearest point ON the sofa's outline
+  if (sofaGroup && ropeMesh && outlinePts && localBox) {
     localCam.copy(tmpPos);
     sofaGroup.worldToLocal(localCam);
-    nearestPt.copy(localCam).clamp(localBox.min, localBox.max);
+
+    // nearest point on the L-shaped outline polygon (XZ plane)
+    let bestD = Infinity;
+    const n = outlinePts.length;
+    for (let i = 0; i < n; i++) {
+      const a = outlinePts[i], b = outlinePts[(i + 1) % n];
+      const abx = b.x - a.x, abz = b.z - a.z;
+      const L2 = abx*abx + abz*abz;
+      let t = L2 > 0 ? ((localCam.x - a.x)*abx + (localCam.z - a.z)*abz) / L2 : 0;
+      t = Math.max(0, Math.min(1, t));
+      const qx = a.x + abx*t, qz = a.z + abz*t;
+      const d = (localCam.x-qx)*(localCam.x-qx) + (localCam.z-qz)*(localCam.z-qz);
+      if (d < bestD) { bestD = d; nearestPt.set(qx, 0, qz); }
+    }
+    // measure at a natural height on the sofa's side
+    nearestPt.y = Math.min(Math.max(localCam.y, 0.08), localBox.max.y * 0.75);
     sofaGroup.localToWorld(nearestPt);
     ropeAnchor.position.copy(nearestPt);
 
-    ropeStart.set(cp.x, cp.y - 0.15, cp.z);
+    const dist = tmpPos.distanceTo(nearestPt);
+    ropeAnchor.scale.setScalar(Math.min(Math.max(dist, 0.5), 3));
+
+    ropeStart.set(cp.x, cp.y - 0.22, cp.z);
     dirVec.subVectors(nearestPt, ropeStart);
     const len = dirVec.length();
-    if (len > 0.05) {
+    if (len > 0.45) {       // hide the cord at very close range — just noise
       ropeMesh.visible = true;
       ropeMesh.position.copy(ropeStart).addScaledVector(dirVec, 0.5);
       ropeMesh.scale.set(1, len, 1);
@@ -663,7 +742,7 @@ function onXRFrame(t, frame) {
       ropeMesh.visible = false;
     }
     if (frameCount % 6 === 0) {
-      distVal.innerHTML = tmpPos.distanceTo(nearestPt).toFixed(2) + '<small>m</small>';
+      distVal.innerHTML = dist.toFixed(2) + '<small>m</small>';
     }
   }
 
@@ -683,7 +762,7 @@ function cleanupAR() {
   hitTestSource = null; transientHitSource = null;
   scene = null; camera = null; reticle = null;
   sofaGroup = null; ropeMesh = null; ropeAnchor = null;
-  localBox = null; dragStartHit = null;
+  localBox = null; dragStartHit = null; outlinePts = null;
   twoFinger = false; dragActive = false; lastHitPose = null;
   reticleHint.style.opacity = '1';
   reticleHint.textContent = 'Move your phone slowly to find the floor';
