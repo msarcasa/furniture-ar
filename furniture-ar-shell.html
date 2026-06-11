@@ -584,10 +584,12 @@ function buildRibbon(pts, width) {
   return new THREE.Mesh(geo, mat);
 }
 
-/* Fixed rope anchor: the front-centre of the sofa, ON its outline.
-   "Front" comes from FRONT_OFFSET, so this is standard for every model:
-   cast a ray from the outline's centroid along the front direction and
-   take the outermost boundary crossing. */
+/* Fixed rope anchor: the centre of the sofa's main FRONT edge.
+   "Front" comes from FRONT_OFFSET (declared per model — GLB files carry
+   no front semantic). Robust for L-shapes: instead of ray-casting from
+   a centroid (which can sit in the L's notch), find every outline edge
+   whose outward face points frontward and anchor at the midpoint of the
+   longest one — the centre of the main front edge on any furniture. */
 function computeFrontAnchor(pts, box) {
   let cx = 0, cz = 0;
   for (const p of pts) { cx += p.x; cz += p.z; }
@@ -596,31 +598,30 @@ function computeFrontAnchor(pts, box) {
   // local front direction implied by FRONT_OFFSET
   const fx = -Math.sin(FRONT_OFFSET), fz = Math.cos(FRONT_OFFSET);
 
-  let bestT = -1, ax2 = cx, az2 = cz;
   const n = pts.length;
-  for (let i = 0; i < n; i++) {
-    const a = pts[i], b = pts[(i + 1) % n];
-    const ex = b.x - a.x, ez = b.z - a.z;
-    // solve centroid + t*front = a + s*edge   (2x2 linear system)
-    const det = fx * (-ez) - fz * (-ex);
-    if (Math.abs(det) < 1e-9) continue;     // parallel
-    const rx = a.x - cx, rz = a.z - cz;
-    const t = (rx * (-ez) - rz * (-ex)) / det;
-    const s = (fx * rz - fz * rx) / det;
-    if (t > 0 && s >= 0 && s <= 1 && t > bestT) {
-      bestT = t;
-      ax2 = cx + fx * t;
-      az2 = cz + fz * t;
+  function longestEdgeFacing(minFacing) {
+    let bx = null, bz = null, bestLen = 0;
+    for (let i = 0; i < n; i++) {
+      const a = pts[i], b = pts[(i + 1) % n];
+      const ex = b.x - a.x, ez = b.z - a.z;
+      const len = Math.hypot(ex, ez);
+      if (len < 0.15) continue;            // ignore tiny jag edges
+      // outward normal = the perpendicular that points away from centroid
+      let nx = ez / len, nz = -ex / len;
+      const mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2;
+      if (nx * (mx - cx) + nz * (mz - cz) < 0) { nx = -nx; nz = -nz; }
+      const facing = nx * fx + nz * fz;    // 1 = faces dead front
+      if (facing > minFacing && len > bestLen) {
+        bestLen = len; bx = mx; bz = mz;
+      }
     }
+    return bx === null ? null : { x: bx, z: bz };
   }
-  if (bestT < 0) {
-    // fallback: the outline point furthest along the front direction
-    let best = -Infinity;
-    for (const p of pts) {
-      const d = p.x * fx + p.z * fz;
-      if (d > best) { best = d; ax2 = p.x; az2 = p.z; }
-    }
-  }
+
+  // strict front first, then lenient, then longest edge of any direction
+  const hit = longestEdgeFacing(0.7) || longestEdgeFacing(0.2) || longestEdgeFacing(-2);
+  const ax2 = hit ? hit.x : cx;
+  const az2 = hit ? hit.z : cz;
   const y = Math.min(box.max.y * 0.5, 0.5);  // roughly seat height
   return new THREE.Vector3(ax2, y, az2);
 }
