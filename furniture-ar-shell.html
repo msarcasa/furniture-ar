@@ -180,6 +180,9 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 /* ---- CONFIG ---- */
 const MODEL_URL = 'https://msarcasa.github.io/furniture-ar/dexter_optimised.glb';
 const DIMS = { w: 2.67, d: 2.03, h: 0.94 };
+// Which way this model's "front" faces relative to its file orientation.
+// Math.PI = the file's back faces +Z (typical for this Tripo export).
+const FRONT_OFFSET = Math.PI;
 
 /* ---- DOM ---- */
 const enterBtn    = document.getElementById('enterAR');
@@ -302,9 +305,12 @@ async function arSupported() {
 let session=null, renderer=null, scene=null, camera=null;
 let reticle=null, hitTestSource=null, transientHitSource=null, refSpace=null;
 let sofaGroup=null, ropeMesh=null, ropeAnchor=null;
-let sofaCenter = new THREE.Vector3();
+let localBox=null;                       // sofa's box in group-local space
 let twoFinger=false, lastAngle=0;
 let dragActive=false, lastHitPose=null;
+let dragStartHit=null;                   // floor point where the drag began
+const sofaStartPos = new THREE.Vector3();// sofa position when drag began
+const lastCam = new THREE.Vector3();     // camera position, updated each frame
 let frameCount=0;
 
 async function startAR() {
@@ -356,8 +362,13 @@ async function startAR() {
   } catch(e) { transientHitSource = null; }
 
   session.addEventListener('end', cleanupAR);
-  session.addEventListener('selectstart', () => { dragActive = true; });
-  session.addEventListener('selectend',   () => { dragActive = false; });
+  session.addEventListener('selectstart', () => {
+    dragActive = true; dragStartHit = null;
+    if (sofaGroup) sofaStartPos.copy(sofaGroup.position);
+  });
+  session.addEventListener('selectend', () => {
+    dragActive = false; dragStartHit = null;
+  });
   renderer.xr.setReferenceSpace(refSpace);
   renderer.setAnimationLoop(onXRFrame);
 }
@@ -370,7 +381,7 @@ overlay.addEventListener('beforexrselect', (e) => {
 /* Two-finger twist = rotate the sofa */
 overlay.addEventListener('touchstart', (e) => {
   if (e.touches.length === 2) {
-    twoFinger = true;
+    twoFinger = true; dragStartHit = null;
     lastAngle = Math.atan2(
       e.touches[1].clientY - e.touches[0].clientY,
       e.touches[1].clientX - e.touches[0].clientX
@@ -388,7 +399,10 @@ overlay.addEventListener('touchmove', (e) => {
   }
 }, {passive:true});
 overlay.addEventListener('touchend', (e) => {
-  if (e.touches.length < 2) twoFinger = false;
+  if (e.touches.length < 2) {
+    twoFinger = false; dragStartHit = null;
+    if (sofaGroup) sofaStartPos.copy(sofaGroup.position);
+  }
 }, {passive:true});
 
 /* ---- PLACE / ANCHOR ---- */
@@ -398,7 +412,8 @@ function placeSofa() {
     new THREE.Matrix4().fromArray(lastHitPose.transform.matrix)
   );
 
-  if (!sofaGroup) {
+  const firstPlacement = !sofaGroup;
+  if (firstPlacement) {
     sofaGroup = new THREE.Group();
     const sofa = modelTemplate.clone(true);
     sofaGroup.add(sofa);
@@ -407,8 +422,14 @@ function placeSofa() {
     sofa.updateMatrixWorld(true);
     const bb = new THREE.Box3().setFromObject(sofa);
     const c  = bb.getCenter(new THREE.Vector3());
+    const sz = bb.getSize(new THREE.Vector3());
     sofa.position.set(-c.x, -bb.min.y, -c.z);
     sofa.updateMatrixWorld(true);
+    // the sofa's own box in group-local space (centred, base at y=0)
+    localBox = new THREE.Box3(
+      new THREE.Vector3(-sz.x/2, 0,     -sz.z/2),
+      new THREE.Vector3( sz.x/2, sz.y,   sz.z/2)
+    );
 
     // true floor outline of THIS shape (L-shaped if the sofa is)
     const outline = buildFootprintOutline(sofa);
@@ -419,8 +440,10 @@ function placeSofa() {
   }
 
   sofaGroup.position.copy(pos);
-  sofaCenter.copy(pos); sofaCenter.y += DIMS.h / 2;
-  if (ropeAnchor) ropeAnchor.position.copy(sofaCenter);
+  if (firstPlacement) {
+    // face the person placing it
+    sofaGroup.rotation.y = Math.atan2(lastCam.x - pos.x, lastCam.z - pos.z) + FRONT_OFFSET;
+  }
 
   reticleHint.textContent = 'Drag to move · twist two fingers to rotate';
   placeBtn.querySelector('svg').style.display = 'none';
@@ -505,14 +528,43 @@ function buildFootprintOutline(model) {
   }
   if (!best || best.length<4) return null;
 
-  const pts3 = best.map(k=>{
+  const rawPts = best.map(k=>{
     const parts = k.split(',');
     return new THREE.Vector3(minX + Number(parts[0])*res, 0, minZ + Number(parts[1])*res);
   });
+  // straighten the staircase: Douglas-Peucker simplification
+  const pts3 = simplifyOutline(rawPts, 0.035);
   pts3.push(pts3[0].clone());
   const geo = new THREE.BufferGeometry().setFromPoints(pts3);
   const mat = new THREE.LineBasicMaterial({ color: 0xcda35e, transparent:true, opacity:0.95 });
   return new THREE.Line(geo, mat);
+}
+
+/* Douglas-Peucker on the XZ plane */
+function simplifyOutline(points, eps) {
+  if (points.length < 4) return points.slice();
+  function perpDist(p, a, b) {
+    const dx = b.x - a.x, dz = b.z - a.z;
+    const L = Math.hypot(dx, dz);
+    if (L === 0) return Math.hypot(p.x - a.x, p.z - a.z);
+    return Math.abs(dx * (a.z - p.z) - (a.x - p.x) * dz) / L;
+  }
+  function rdp(pts, s, e, out) {
+    let maxD = 0, idx = -1;
+    for (let i = s + 1; i < e; i++) {
+      const d = perpDist(pts[i], pts[s], pts[e]);
+      if (d > maxD) { maxD = d; idx = i; }
+    }
+    if (maxD > eps && idx > 0) {
+      rdp(pts, s, idx, out);
+      out.push(pts[idx]);
+      rdp(pts, idx, e, out);
+    }
+  }
+  const out = [points[0]];
+  rdp(points, 0, points.length - 1, out);
+  out.push(points[points.length - 1]);
+  return out;
 }
 
 /* ---- VISIBLE ROPE (a thin 3D cord, not a 1px line) ---- */
@@ -531,6 +583,10 @@ const tmpPos = new THREE.Vector3();
 const ropeStart = new THREE.Vector3();
 const upVec = new THREE.Vector3(0,1,0);
 const dirVec = new THREE.Vector3();
+const hitVec = new THREE.Vector3();
+const deltaVec = new THREE.Vector3();
+const localCam = new THREE.Vector3();
+const nearestPt = new THREE.Vector3();
 
 function onXRFrame(t, frame) {
   frameCount++;
@@ -555,16 +611,27 @@ function onXRFrame(t, frame) {
     reticle.visible = false;
   }
 
-  // one-finger press-and-drag = move the sofa along the floor
+  // one-finger press-and-drag = move the sofa BY the drag distance (no snap-to-tap)
   if (sofaGroup && dragActive && !twoFinger && transientHitSource) {
     const tHits = frame.getHitTestResultsForTransientInput(transientHitSource);
     for (const inputResult of tHits) {
       if (inputResult.results.length) {
         const p = inputResult.results[0].getPose(refSpace);
         if (p) {
-          sofaGroup.position.set(p.transform.position.x, p.transform.position.y, p.transform.position.z);
-          sofaCenter.set(p.transform.position.x, p.transform.position.y + DIMS.h/2, p.transform.position.z);
-          if (ropeAnchor) ropeAnchor.position.copy(sofaCenter);
+          hitVec.set(p.transform.position.x, p.transform.position.y, p.transform.position.z);
+          if (!dragStartHit) {
+            dragStartHit = hitVec.clone();
+            sofaStartPos.copy(sofaGroup.position);
+          } else {
+            deltaVec.subVectors(hitVec, dragStartHit);
+            if (deltaVec.length() > 0.02) {  // dead-zone: taps don't move it
+              sofaGroup.position.set(
+                sofaStartPos.x + deltaVec.x,
+                hitVec.y,
+                sofaStartPos.z + deltaVec.z
+              );
+            }
+          }
         }
         break;
       }
@@ -574,11 +641,18 @@ function onXRFrame(t, frame) {
   // camera position
   const cp = pose.transform.position;
   tmpPos.set(cp.x, cp.y, cp.z);
+  lastCam.copy(tmpPos);
 
-  // rope: from just below the phone to the sofa centre
-  if (sofaGroup && ropeMesh) {
+  // rope: from just below the phone to the NEAREST point on the sofa
+  if (sofaGroup && ropeMesh && localBox) {
+    localCam.copy(tmpPos);
+    sofaGroup.worldToLocal(localCam);
+    nearestPt.copy(localCam).clamp(localBox.min, localBox.max);
+    sofaGroup.localToWorld(nearestPt);
+    ropeAnchor.position.copy(nearestPt);
+
     ropeStart.set(cp.x, cp.y - 0.15, cp.z);
-    dirVec.subVectors(sofaCenter, ropeStart);
+    dirVec.subVectors(nearestPt, ropeStart);
     const len = dirVec.length();
     if (len > 0.05) {
       ropeMesh.visible = true;
@@ -589,7 +663,7 @@ function onXRFrame(t, frame) {
       ropeMesh.visible = false;
     }
     if (frameCount % 6 === 0) {
-      distVal.innerHTML = tmpPos.distanceTo(sofaCenter).toFixed(2) + '<small>m</small>';
+      distVal.innerHTML = tmpPos.distanceTo(nearestPt).toFixed(2) + '<small>m</small>';
     }
   }
 
@@ -609,6 +683,7 @@ function cleanupAR() {
   hitTestSource = null; transientHitSource = null;
   scene = null; camera = null; reticle = null;
   sofaGroup = null; ropeMesh = null; ropeAnchor = null;
+  localBox = null; dragStartHit = null;
   twoFinger = false; dragActive = false; lastHitPose = null;
   reticleHint.style.opacity = '1';
   reticleHint.textContent = 'Move your phone slowly to find the floor';
@@ -619,6 +694,14 @@ function cleanupAR() {
   previewPaused = false;
 }
 closeBtn.addEventListener('click', () => { if (session) session.end(); });
+
+/* If a phone call or app switch hides the page, end the AR session cleanly
+   so the "Place in your room" button works the moment the user returns. */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && session) {
+    try { session.end(); } catch(e) {}
+  }
+});
 
 /* ---- SHEET ---- */
 function showSheet(title, body) {
