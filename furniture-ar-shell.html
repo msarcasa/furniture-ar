@@ -304,6 +304,7 @@ let reticle=null, hitTestSource=null, transientHitSource=null, refSpace=null;
 let sofaGroup=null, ropeMesh=null, ropeAnchor=null;
 let sofaCenter = new THREE.Vector3();
 let twoFinger=false, lastAngle=0;
+let dragActive=false, lastHitPose=null;
 let frameCount=0;
 
 async function startAR() {
@@ -330,6 +331,7 @@ async function startAR() {
   const canvas = document.createElement('canvas');
   const gl = canvas.getContext('webgl', { xrCompatible: true, alpha: true, powerPreference:'high-performance' });
   renderer = new THREE.WebGLRenderer({ canvas, context: gl, alpha: true, antialias: false });
+  renderer.xr.enabled = true;
   renderer.autoClear = false;
   renderer.setPixelRatio(1);
 
@@ -354,6 +356,8 @@ async function startAR() {
   } catch(e) { transientHitSource = null; }
 
   session.addEventListener('end', cleanupAR);
+  session.addEventListener('selectstart', () => { dragActive = true; });
+  session.addEventListener('selectend',   () => { dragActive = false; });
   renderer.xr.setReferenceSpace(refSpace);
   renderer.setAnimationLoop(onXRFrame);
 }
@@ -389,8 +393,10 @@ overlay.addEventListener('touchend', (e) => {
 
 /* ---- PLACE / ANCHOR ---- */
 function placeSofa() {
-  if (!reticle.visible) return;
-  const pos = new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
+  if (!lastHitPose) return;
+  const pos = new THREE.Vector3().setFromMatrixPosition(
+    new THREE.Matrix4().fromArray(lastHitPose.transform.matrix)
+  );
 
   if (!sofaGroup) {
     sofaGroup = new THREE.Group();
@@ -531,22 +537,26 @@ function onXRFrame(t, frame) {
   const pose = frame.getViewerPose(refSpace);
   if (!pose) { renderer.render(scene, camera); return; }
 
-  // floor reticle
+  // floor reticle — visible only until the sofa is placed; hit pose cached for Re-anchor
   const hits = frame.getHitTestResults(hitTestSource);
   if (hits.length) {
-    const hp = hits[0].getPose(refSpace);
-    reticle.visible = !sofaGroup || placeBtnVisible();
-    reticle.matrix.fromArray(hp.transform.matrix);
+    lastHitPose = hits[0].getPose(refSpace);
+    if (!sofaGroup) {
+      reticle.visible = true;
+      reticle.matrix.fromArray(lastHitPose.transform.matrix);
+    } else {
+      reticle.visible = false;
+    }
     if (placeBtn.classList.contains('hidden')) {
       placeBtn.classList.remove('hidden');
       reticleHint.textContent = 'Tap "Place here" to drop the sofa';
     }
-  } else if (!sofaGroup) {
+  } else {
     reticle.visible = false;
   }
 
-  // one-finger drag = move the sofa along the floor
-  if (sofaGroup && !twoFinger && transientHitSource) {
+  // one-finger press-and-drag = move the sofa along the floor
+  if (sofaGroup && dragActive && !twoFinger && transientHitSource) {
     const tHits = frame.getHitTestResultsForTransientInput(transientHitSource);
     for (const inputResult of tHits) {
       if (inputResult.results.length) {
@@ -586,7 +596,6 @@ function onXRFrame(t, frame) {
   renderer.render(scene, camera);
 }
 
-function placeBtnVisible(){ return !placeBtn.classList.contains('hidden'); }
 
 /* ---- CLEANUP (dispose GL context so the preview never dies) ---- */
 function cleanupAR() {
@@ -600,7 +609,7 @@ function cleanupAR() {
   hitTestSource = null; transientHitSource = null;
   scene = null; camera = null; reticle = null;
   sofaGroup = null; ropeMesh = null; ropeAnchor = null;
-  twoFinger = false;
+  twoFinger = false; dragActive = false; lastHitPose = null;
   reticleHint.style.opacity = '1';
   reticleHint.textContent = 'Move your phone slowly to find the floor';
   placeBtn.classList.add('hidden');
