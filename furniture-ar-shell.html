@@ -16,8 +16,9 @@
   body{
     font-family:'Spectral','Georgia',serif;
     background:radial-gradient(120% 80% at 50% -10%, #fbf8f1 0%, var(--bone) 55%, var(--sand) 100%);
-    color:var(--ink);overflow:hidden;position:fixed;inset:0;width:100%;
+    color:var(--ink); overflow:hidden; position:fixed; inset:0; width:100%;
   }
+
   #landing{position:absolute;inset:0;display:flex;flex-direction:column;
     padding:28px 24px calc(28px + env(safe-area-inset-bottom));z-index:5;}
   .eyebrow{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:0.32em;
@@ -25,10 +26,12 @@
   .topline{display:flex;justify-content:space-between;align-items:baseline;}
   .topline .meta{font-family:'Inter',sans-serif;font-size:10px;letter-spacing:0.18em;
     text-transform:uppercase;color:rgba(20,17,13,0.4);}
+
   .stage{flex:1;position:relative;display:flex;align-items:center;justify-content:center;margin:8px -24px;}
-  #preview{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  #preview{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;}
   .stage-fade{position:absolute;inset:0;pointer-events:none;
     background:radial-gradient(60% 50% at 50% 60%, transparent 60%, rgba(228,220,203,0.5) 100%);}
+
   .titleblock{padding-top:4px;}
   .titleblock h1{font-weight:500;font-size:38px;line-height:0.98;letter-spacing:-0.01em;}
   .titleblock h1 em{font-style:italic;color:var(--brass);}
@@ -36,15 +39,18 @@
     color:rgba(20,17,13,0.55);margin-top:12px;display:flex;gap:18px;align-items:center;}
   .dims b{font-weight:600;color:var(--ink);}
   .dims .sep{width:1px;height:11px;background:var(--line);}
+
   .enter{margin-top:22px;width:100%;border:none;background:var(--ink);color:var(--bone);
     font-family:'Inter',sans-serif;font-weight:600;font-size:14px;letter-spacing:0.14em;
     text-transform:uppercase;padding:19px;border-radius:2px;display:flex;align-items:center;
     justify-content:center;gap:12px;cursor:pointer;box-shadow:var(--shadow);
-    transition:transform .12s ease,background .2s ease;}
+    transition:transform .12s ease, background .2s ease;}
   .enter:active{transform:scale(.985);background:#221d16;}
   .enter svg{width:18px;height:18px;}
+
   .hint{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:0.03em;
     color:rgba(20,17,13,0.4);text-align:center;margin-top:12px;line-height:1.5;}
+
   #previewLoad{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     gap:10px;pointer-events:none;transition:opacity .5s ease;}
   #previewLoad.gone{opacity:0;}
@@ -53,6 +59,7 @@
   @keyframes spin{to{transform:rotate(360deg);}}
   #previewLoad span{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.18em;
     text-transform:uppercase;color:rgba(20,17,13,0.4);}
+
   #ar-overlay{position:absolute;inset:0;z-index:20;display:none;flex-direction:column;
     justify-content:space-between;
     padding:calc(20px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
@@ -64,41 +71,40 @@
     border-radius:3px;padding:12px 14px;color:var(--bone);min-width:148px;}
   .readout .rk{font-family:'Inter',sans-serif;font-size:9px;letter-spacing:.24em;
     text-transform:uppercase;color:var(--brass-soft);}
-  .readout .rv{font-family:'Inter',sans-serif;font-weight:600;font-size:19px;
-    letter-spacing:.01em;margin-top:3px;font-variant-numeric:tabular-nums;}
+  .readout .rv{font-family:'Inter',sans-serif;font-weight:600;font-size:19px;letter-spacing:.01em;
+    margin-top:3px;font-variant-numeric:tabular-nums;}
   .readout .rv small{font-size:12px;font-weight:400;opacity:.7;margin-left:2px;}
   .readout .rsub{font-family:'Inter',sans-serif;font-size:10px;letter-spacing:.05em;
     color:rgba(243,239,230,0.55);margin-top:8px;font-variant-numeric:tabular-nums;}
-  .close{pointer-events:auto;width:42px;height:42px;border-radius:50%;
-    background:rgba(20,17,13,0.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-    border:1px solid rgba(243,239,230,0.16);color:var(--bone);display:flex;
-    align-items:center;justify-content:center;cursor:pointer;}
+  .close{pointer-events:auto;width:42px;height:42px;border-radius:50%;background:rgba(20,17,13,0.55);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(243,239,230,0.16);
+    color:var(--bone);display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .close svg{width:18px;height:18px;}
   .ar-bottom{display:flex;flex-direction:column;align-items:center;gap:14px;}
-  .reticle-hint{pointer-events:none;font-family:'Inter',sans-serif;font-size:12px;
-    letter-spacing:.04em;color:var(--bone);background:rgba(20,17,13,0.5);
-    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:10px 16px;
-    border-radius:100px;text-align:center;transition:opacity .4s ease;}
+  .reticle-hint{pointer-events:none;font-family:'Inter',sans-serif;font-size:12px;letter-spacing:.04em;
+    color:var(--bone);background:rgba(20,17,13,0.5);backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);padding:10px 16px;border-radius:100px;text-align:center;
+    transition:opacity .4s ease;}
   .place-btn{pointer-events:auto;border:none;background:var(--brass);color:#1b1306;
     font-family:'Inter',sans-serif;font-weight:700;font-size:13px;letter-spacing:.14em;
-    text-transform:uppercase;padding:16px 32px;border-radius:100px;display:flex;
-    align-items:center;gap:10px;cursor:pointer;box-shadow:0 10px 30px -8px rgba(0,0,0,0.6);
-    transition:transform .12s ease;}
+    text-transform:uppercase;padding:16px 32px;border-radius:100px;display:flex;align-items:center;
+    gap:10px;cursor:pointer;box-shadow:0 10px 30px -8px rgba(0,0,0,0.6);transition:transform .12s ease;}
   .place-btn:active{transform:scale(.96);}
   .place-btn.hidden{display:none;}
+
   #sheet{position:absolute;left:0;right:0;bottom:0;z-index:40;background:var(--bone);
     border-top:1px solid var(--line);border-radius:14px 14px 0 0;
     padding:26px 24px calc(30px + env(safe-area-inset-bottom));transform:translateY(110%);
-    transition:transform .4s cubic-bezier(.2,.8,.2,1);
-    box-shadow:0 -20px 50px -20px rgba(20,17,13,.4);}
+    transition:transform .4s cubic-bezier(.2,.8,.2,1);box-shadow:0 -20px 50px -20px rgba(20,17,13,.4);}
   #sheet.up{transform:translateY(0);}
   #sheet h3{font-weight:500;font-size:21px;margin-bottom:8px;}
   #sheet p{font-family:'Inter',sans-serif;font-size:13px;line-height:1.6;color:rgba(20,17,13,.65);}
   #sheet .row{display:flex;gap:10px;margin-top:18px;}
-  #sheet button{flex:1;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;
-    letter-spacing:.06em;padding:14px;border-radius:3px;cursor:pointer;border:1px solid var(--ink);}
+  #sheet button{flex:1;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;letter-spacing:.06em;
+    padding:14px;border-radius:3px;cursor:pointer;border:1px solid var(--ink);}
   #sheet .primary{background:var(--ink);color:var(--bone);}
-  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+
+  @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important;}}
 </style>
 </head>
 <body>
@@ -106,7 +112,7 @@
 <section id="landing">
   <div class="topline">
     <span class="eyebrow">Furniture AR</span>
-    <span class="meta">Kolkata &middot; Beta</span>
+    <span class="meta">Kolkata · Beta</span>
   </div>
   <div class="stage">
     <canvas id="preview"></canvas>
@@ -136,32 +142,27 @@
     <div class="readout">
       <div class="rk">Distance to sofa</div>
       <div class="rv" id="distVal">&mdash;<small>m</small></div>
-      <div class="rsub" id="footVal">Footprint 2.67 &times; 2.03 m</div>
+      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m</div>
     </div>
     <button class="close" id="closeAR" aria-label="Exit AR">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <path d="M6 6l12 12M18 6 6 18"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
     </button>
   </div>
   <div class="ar-bottom">
     <div class="reticle-hint" id="reticleHint">Move your phone slowly to find the floor</div>
-    <button class="place-btn hidden" id="placeBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2v6m0 8v6M2 12h6m8 0h6"/><circle cx="12" cy="12" r="3"/>
-      </svg>
+    <button class="place-btn" id="placeBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6m0 8v6M2 12h6m8 0h6"/><circle cx="12" cy="12" r="3"/></svg>
       Place here
     </button>
   </div>
 </div>
 
 <div id="sheet">
-  <h3 id="sheetTitle">AR isn&rsquo;t available here</h3>
+  <h3 id="sheetTitle">AR isn't available here</h3>
   <p id="sheetBody"></p>
   <div class="row"><button class="primary" id="sheetOk">Got it</button></div>
 </div>
 
-<!-- Three.js + GLTFLoader via importmap for clean module resolution -->
 <script type="importmap">
 {
   "imports": {
@@ -200,7 +201,6 @@ dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5
 const loader = new GLTFLoader();
 loader.setDRACOLoader(dracoLoader);
 
-/* ---- LOAD MODEL ONCE ---- */
 let modelTemplate = null, modelLoadError = false;
 
 loader.load(
@@ -215,12 +215,12 @@ loader.load(
     console.error('GLB load failed:', err);
     modelLoadError = true;
     previewLoad.classList.add('gone');
-    showSheet('Model didn\u2019t load',
-      'We couldn\u2019t load the 3D file. Check your connection and reload the page.');
+    showSheet('Model did not load', 'We could not reach the 3D file. Check the connection and reload the page.');
   }
 );
 
-/* ---- LANDING TURNTABLE PREVIEW ---- */
+/* ---- LANDING PREVIEW (drag to rotate + idle spin) ---- */
+let previewPaused = false;
 function buildPreview(scene) {
   const canvas = document.getElementById('preview');
   const r = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
@@ -253,78 +253,64 @@ function buildPreview(scene) {
   cam.position.set(radius * 0.9, radius * 0.55, radius * 1.5);
   cam.lookAt(0, 0, 0);
 
-  // Drag to rotate (touch + mouse), gentle auto-spin when idle
-  let rotY = 0.5, velocity = 0, dragging = false, lastX = 0, idleTimer = 0;
-  canvas.style.touchAction = 'pan-y'; // keep vertical page scroll working
-
-  function onDown(x){ dragging = true; lastX = x; velocity = 0; }
-  function onMove(x){
+  let rotY = 0.5, velocity = 0, dragging = false, lastX = 0, idle = 0;
+  function down(x){ dragging = true; lastX = x; velocity = 0; }
+  function move(x){
     if (!dragging) return;
     const dx = x - lastX; lastX = x;
-    rotY += dx * 0.008;
-    velocity = dx * 0.008;
-    idleTimer = 0;
+    rotY += dx * 0.008; velocity = dx * 0.008; idle = 0;
   }
-  function onUp(){ dragging = false; }
-
-  canvas.addEventListener('pointerdown', e => onDown(e.clientX));
-  addEventListener('pointermove',  e => onMove(e.clientX));
-  addEventListener('pointerup',    onUp);
-  canvas.addEventListener('touchstart', e => onDown(e.touches[0].clientX), {passive:true});
-  canvas.addEventListener('touchmove',  e => onMove(e.touches[0].clientX), {passive:true});
-  canvas.addEventListener('touchend',   onUp);
+  function up(){ dragging = false; }
+  canvas.addEventListener('pointerdown', e => down(e.clientX));
+  addEventListener('pointermove', e => move(e.clientX));
+  addEventListener('pointerup', up);
+  canvas.addEventListener('touchstart', e => down(e.touches[0].clientX), {passive:true});
+  canvas.addEventListener('touchmove',  e => move(e.touches[0].clientX), {passive:true});
+  canvas.addEventListener('touchend', up);
 
   (function loop() {
     requestAnimationFrame(loop);
+    if (previewPaused) return;
     if (!dragging) {
-      // inertia, then ease into a slow ambient spin after ~2s idle
-      velocity *= 0.95;
-      rotY += velocity;
-      idleTimer++;
-      if (idleTimer > 120) rotY += 0.0025;
+      velocity *= 0.95; rotY += velocity;
+      idle++;
+      if (idle > 120) rotY += 0.0025;
     }
     holder.rotation.y = rotY;
     r.render(world, cam);
   })();
 }
 
-/* ---- AR SUPPORT CHECK ---- */
+/* ---- AR SUPPORT ---- */
 async function arSupported() {
   if (!('xr' in navigator)) return false;
   try { return await navigator.xr.isSessionSupported('immersive-ar'); }
   catch { return false; }
 }
-
-(async () => {
+(async function initButton() {
   const ok = await arSupported();
   if (!ok) {
-    enterBtn.addEventListener('click', () => showSheet(
-      'AR isn\u2019t available here',
-      'This browser doesn\u2019t support in-room AR. On Android, open this page in Chrome and ensure \u201cGoogle Play Services for AR\u201d is installed from the Play Store.'
-    ));
-    document.getElementById('hint').textContent = 'Requires Android Chrome with ARCore.';
+    enterBtn.addEventListener('click', () => showSheet('AR is not available here',
+      'This phone or browser does not support in-room AR yet. On Android, open in Chrome and make sure Google Play Services for AR is installed.'));
+    document.getElementById('hint').textContent = 'Best on Android Chrome.';
   } else {
     enterBtn.addEventListener('click', startAR);
   }
 })();
 
-/* ---- WEBXR SESSION ---- */
-let session = null, renderer = null, scene = null, camera = null;
-let reticle = null, hitTestSource = null, refSpace = null, viewerSpace = null;
-let placedSofa = null, footprintLine = null, ropeLine = null;
-const sofaCenter = new THREE.Vector3();
-const tmpPos     = new THREE.Vector3();
+/* ---- AR STATE ---- */
+let session=null, renderer=null, scene=null, camera=null;
+let reticle=null, hitTestSource=null, transientHitSource=null, refSpace=null;
+let sofaGroup=null, ropeMesh=null, ropeAnchor=null;
+let sofaCenter = new THREE.Vector3();
+let twoFinger=false, lastAngle=0;
+let frameCount=0;
 
 async function startAR() {
-  if (!modelTemplate) {
-    showSheet('Still loading', 'The 3D model is still loading. Wait a moment and try again.');
+  if (modelLoadError || !modelTemplate) {
+    showSheet('Still loading', 'The model has not finished loading yet. Give it a second and tap again.');
     return;
   }
-  if (modelLoadError) {
-    showSheet('Model error', 'The 3D model failed to load. Reload the page and try again.');
-    return;
-  }
-
   try {
     session = await navigator.xr.requestSession('immersive-ar', {
       requiredFeatures: ['hit-test', 'local-floor'],
@@ -332,171 +318,303 @@ async function startAR() {
       domOverlay: { root: overlay }
     });
   } catch (e) {
-    console.error('XR session failed:', e);
-    showSheet('Couldn\u2019t start AR',
-      'Camera permission may have been denied. Allow camera access in your browser settings and try again.');
+    showSheet('Could not start AR', 'The camera permission may have been declined. Allow camera access and try again.');
     return;
   }
 
+  previewPaused = true;
   overlay.classList.add('on');
+  placeBtn.classList.add('hidden');
   distVal.innerHTML = '&mdash;<small>m</small>';
 
-  /* WebGL context for XR */
   const canvas = document.createElement('canvas');
-  const gl = canvas.getContext('webgl', { xrCompatible: true, alpha: true });
-
-  renderer = new THREE.WebGLRenderer({ canvas, context: gl, alpha: true, antialias: true });
+  const gl = canvas.getContext('webgl', { xrCompatible: true, alpha: true, powerPreference:'high-performance' });
+  renderer = new THREE.WebGLRenderer({ canvas, context: gl, alpha: true, antialias: false });
   renderer.autoClear = false;
   renderer.setPixelRatio(1);
-  renderer.xr.enabled = true;
 
-  scene  = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera();
+  scene = new THREE.Scene();
   scene.add(new THREE.HemisphereLight(0xffffff, 0x99846a, 1.1));
   const dir = new THREE.DirectionalLight(0xffffff, 1.0);
   dir.position.set(1, 3, 2); scene.add(dir);
+  camera = new THREE.PerspectiveCamera();
 
-  /* reticle ring */
-  const rg  = new THREE.RingGeometry(0.10, 0.13, 48).rotateX(-Math.PI / 2);
-  const rm  = new THREE.MeshBasicMaterial({ color: 0xcda35e, transparent: true, opacity: 0.9 });
+  const rg = new THREE.RingGeometry(0.10, 0.12, 40).rotateX(-Math.PI / 2);
+  const rm = new THREE.MeshBasicMaterial({ color: 0xcda35e, transparent: true, opacity: 0.9 });
   reticle = new THREE.Mesh(rg, rm);
-  reticle.matrixAutoUpdate = false;
-  reticle.visible = false;
+  reticle.matrixAutoUpdate = false; reticle.visible = false;
   scene.add(reticle);
 
   await renderer.xr.setSession(session);
-  refSpace    = await session.requestReferenceSpace('local-floor');
-  viewerSpace = await session.requestReferenceSpace('viewer');
+  refSpace = await session.requestReferenceSpace('local-floor');
+  const viewerSpace = await session.requestReferenceSpace('viewer');
   hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
+  try {
+    transientHitSource = await session.requestHitTestSourceForTransientInput({ profile: 'generic-touchscreen' });
+  } catch(e) { transientHitSource = null; }
 
-  renderer.xr.setReferenceSpace(refSpace);
   session.addEventListener('end', cleanupAR);
+  renderer.xr.setReferenceSpace(refSpace);
   renderer.setAnimationLoop(onXRFrame);
 }
 
-/* ---- PLACE SOFA ---- */
+/* Keep button taps from also dragging the sofa */
+overlay.addEventListener('beforexrselect', (e) => {
+  if (e.target && e.target.closest && e.target.closest('button')) e.preventDefault();
+});
+
+/* Two-finger twist = rotate the sofa */
+overlay.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 2) {
+    twoFinger = true;
+    lastAngle = Math.atan2(
+      e.touches[1].clientY - e.touches[0].clientY,
+      e.touches[1].clientX - e.touches[0].clientX
+    );
+  }
+}, {passive:true});
+overlay.addEventListener('touchmove', (e) => {
+  if (twoFinger && e.touches.length === 2 && sofaGroup) {
+    const a = Math.atan2(
+      e.touches[1].clientY - e.touches[0].clientY,
+      e.touches[1].clientX - e.touches[0].clientX
+    );
+    sofaGroup.rotation.y -= (a - lastAngle);
+    lastAngle = a;
+  }
+}, {passive:true});
+overlay.addEventListener('touchend', (e) => {
+  if (e.touches.length < 2) twoFinger = false;
+}, {passive:true});
+
+/* ---- PLACE / ANCHOR ---- */
 function placeSofa() {
   if (!reticle.visible) return;
-
-  // reticle.matrix IS a Matrix4 — read its position directly.
-  // (Passing it to fromArray() produced NaN: that was the invisible-sofa bug.)
   const pos = new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
 
-  if (!placedSofa) {
-    placedSofa = modelTemplate.clone(true);
-    scene.add(placedSofa);
-    buildFootprint();
+  if (!sofaGroup) {
+    sofaGroup = new THREE.Group();
+    const sofa = modelTemplate.clone(true);
+    sofaGroup.add(sofa);
+    // anchor sofa inside the group: base on floor, centre on origin
+    sofa.position.set(0,0,0);
+    sofa.updateMatrixWorld(true);
+    const bb = new THREE.Box3().setFromObject(sofa);
+    const c  = bb.getCenter(new THREE.Vector3());
+    sofa.position.set(-c.x, -bb.min.y, -c.z);
+    sofa.updateMatrixWorld(true);
+
+    // true floor outline of THIS shape (L-shaped if the sofa is)
+    const outline = buildFootprintOutline(sofa);
+    if (outline) { outline.position.y = 0.006; sofaGroup.add(outline); }
+
+    scene.add(sofaGroup);
     buildRope();
   }
 
-  // Anchor the sofa by its own bounding box so its BASE sits on the
-  // floor and its centre sits on the reticle — regardless of where
-  // Tripo placed the model origin.
-  placedSofa.position.set(0, 0, 0);
-  placedSofa.updateMatrixWorld(true);
-  const bb = new THREE.Box3().setFromObject(placedSofa);
-  const c  = bb.getCenter(new THREE.Vector3());
-  placedSofa.position.set(
-    pos.x - c.x,
-    pos.y - bb.min.y,
-    pos.z - c.z
-  );
+  sofaGroup.position.copy(pos);
+  sofaCenter.copy(pos); sofaCenter.y += DIMS.h / 2;
+  if (ropeAnchor) ropeAnchor.position.copy(sofaCenter);
 
-  footprintLine.position.copy(pos);
-  footprintLine.position.y += 0.006;
-  sofaCenter.copy(pos);
-  sofaCenter.y += DIMS.h / 2;
-
-  reticleHint.style.opacity = '0';
+  reticleHint.textContent = 'Drag to move · twist two fingers to rotate';
   placeBtn.querySelector('svg').style.display = 'none';
-  placeBtn.childNodes[2].nodeValue = ' Move it';
+  placeBtn.childNodes[2].nodeValue = ' Re-anchor';
 }
 placeBtn.addEventListener('click', placeSofa);
 
-/* ---- FLOOR FOOTPRINT ---- */
-function buildFootprint() {
-  const hw = DIMS.w / 2, hd = DIMS.d / 2;
-  const pts = [
-    new THREE.Vector3(-hw, 0, -hd),
-    new THREE.Vector3( hw, 0, -hd),
-    new THREE.Vector3( hw, 0,  hd),
-    new THREE.Vector3(-hw, 0,  hd),
-    new THREE.Vector3(-hw, 0, -hd)
-  ];
-  const g   = new THREE.BufferGeometry().setFromPoints(pts);
-  const mat = new THREE.LineBasicMaterial({ color: 0xcda35e, transparent: true, opacity: 0.8 });
-  footprintLine = new THREE.Line(g, mat);
-  scene.add(footprintLine);
+/* ---- TRUE FLOOR FOOTPRINT (projected outline of the actual mesh) ---- */
+function buildFootprintOutline(model) {
+  model.updateMatrixWorld(true);
+  const v = new THREE.Vector3();
+  const pts = [];
+  model.traverse(o => {
+    if (o.isMesh && o.geometry && o.geometry.attributes.position) {
+      const p = o.geometry.attributes.position, m = o.matrixWorld;
+      const step = Math.max(1, Math.floor(p.count / 15000));
+      for (let i = 0; i < p.count; i += step) {
+        v.fromBufferAttribute(p, i).applyMatrix4(m);
+        pts.push(v.x, v.z);
+      }
+    }
+  });
+  if (pts.length < 6) return null;
+
+  let minX=1e9,maxX=-1e9,minZ=1e9,maxZ=-1e9;
+  for (let i=0;i<pts.length;i+=2){
+    if(pts[i]<minX)minX=pts[i]; if(pts[i]>maxX)maxX=pts[i];
+    if(pts[i+1]<minZ)minZ=pts[i+1]; if(pts[i+1]>maxZ)maxZ=pts[i+1];
+  }
+  const res = 0.045, pad = res;
+  minX-=pad; minZ-=pad; maxX+=pad; maxZ+=pad;
+  const nx = Math.max(2, Math.ceil((maxX-minX)/res));
+  const nz = Math.max(2, Math.ceil((maxZ-minZ)/res));
+  const grid = new Uint8Array(nx*nz);
+  for (let i=0;i<pts.length;i+=2){
+    const gx = Math.floor((pts[i]-minX)/res), gz = Math.floor((pts[i+1]-minZ)/res);
+    if (gx>=0&&gx<nx&&gz>=0&&gz<nz) grid[gz*nx+gx]=1;
+  }
+  // close one-cell gaps
+  const g2 = new Uint8Array(grid);
+  for (let z=0;z<nz;z++) for (let x=0;x<nx;x++){
+    if (grid[z*nx+x]) continue;
+    let n=0;
+    if (x>0 && grid[z*nx+x-1]) n++;
+    if (x<nx-1 && grid[z*nx+x+1]) n++;
+    if (z>0 && grid[(z-1)*nx+x]) n++;
+    if (z<nz-1 && grid[(z+1)*nx+x]) n++;
+    if (n>=2) g2[z*nx+x]=1;
+  }
+  const filled=(x,z)=> x>=0&&x<nx&&z>=0&&z<nz&&g2[z*nx+x]===1;
+
+  // collect boundary segments between filled and empty cells
+  const adj = new Map();
+  const key=(x,z)=>x+','+z;
+  function addSeg(a,b){
+    if(!adj.has(a)) adj.set(a,[]);
+    if(!adj.has(b)) adj.set(b,[]);
+    adj.get(a).push(b); adj.get(b).push(a);
+  }
+  for (let z=0;z<nz;z++) for (let x=0;x<nx;x++){
+    if (!filled(x,z)) continue;
+    if (!filled(x,z-1)) addSeg(key(x,z),     key(x+1,z));
+    if (!filled(x,z+1)) addSeg(key(x,z+1),   key(x+1,z+1));
+    if (!filled(x-1,z)) addSeg(key(x,z),     key(x,z+1));
+    if (!filled(x+1,z)) addSeg(key(x+1,z),   key(x+1,z+1));
+  }
+  // walk the longest loop
+  const visited = new Set();
+  let best = null;
+  for (const start of adj.keys()){
+    if (visited.has(start)) continue;
+    const loop=[start]; visited.add(start);
+    let cur=start, prev=null;
+    while (true){
+      const nbrs = adj.get(cur) || [];
+      let nxt=null;
+      for (const n of nbrs){ if (n!==prev && !visited.has(n)) { nxt=n; break; } }
+      if (!nxt) break;
+      loop.push(nxt); visited.add(nxt); prev=cur; cur=nxt;
+    }
+    if (!best || loop.length>best.length) best=loop;
+  }
+  if (!best || best.length<4) return null;
+
+  const pts3 = best.map(k=>{
+    const parts = k.split(',');
+    return new THREE.Vector3(minX + Number(parts[0])*res, 0, minZ + Number(parts[1])*res);
+  });
+  pts3.push(pts3[0].clone());
+  const geo = new THREE.BufferGeometry().setFromPoints(pts3);
+  const mat = new THREE.LineBasicMaterial({ color: 0xcda35e, transparent:true, opacity:0.95 });
+  return new THREE.Line(geo, mat);
 }
 
-/* ---- DISTANCE ROPE ---- */
+/* ---- VISIBLE ROPE (a thin 3D cord, not a 1px line) ---- */
 function buildRope() {
-  const pts = [new THREE.Vector3(), new THREE.Vector3()];
-  const g   = new THREE.BufferGeometry().setFromPoints(pts);
-  const mat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
-  ropeLine = new THREE.Line(g, mat);
-  scene.add(ropeLine);
+  const geo = new THREE.CylinderGeometry(0.0035, 0.0035, 1, 6, 1, true);
+  const mat = new THREE.MeshBasicMaterial({ color: 0xcda35e, transparent: true, opacity: 0.55 });
+  ropeMesh = new THREE.Mesh(geo, mat);
+  ropeMesh.frustumCulled = false;
+  scene.add(ropeMesh);
+  const dotGeo = new THREE.SphereGeometry(0.014, 12, 12);
+  ropeAnchor = new THREE.Mesh(dotGeo, new THREE.MeshBasicMaterial({ color: 0xcda35e }));
+  scene.add(ropeAnchor);
 }
 
-/* ---- XR FRAME LOOP ---- */
-function onXRFrame(time, frame) {
+const tmpPos = new THREE.Vector3();
+const ropeStart = new THREE.Vector3();
+const upVec = new THREE.Vector3(0,1,0);
+const dirVec = new THREE.Vector3();
+
+function onXRFrame(t, frame) {
+  frameCount++;
   const pose = frame.getViewerPose(refSpace);
   if (!pose) { renderer.render(scene, camera); return; }
 
-  /* hit-test → reticle */
+  // floor reticle
   const hits = frame.getHitTestResults(hitTestSource);
   if (hits.length) {
     const hp = hits[0].getPose(refSpace);
-    reticle.visible = true;
+    reticle.visible = !sofaGroup || placeBtnVisible();
     reticle.matrix.fromArray(hp.transform.matrix);
     if (placeBtn.classList.contains('hidden')) {
       placeBtn.classList.remove('hidden');
-      reticleHint.textContent = placedSofa
-        ? 'Tap \u201cMove it\u201d to reposition'
-        : 'Tap \u201cPlace here\u201d to set the sofa';
+      reticleHint.textContent = 'Tap "Place here" to drop the sofa';
     }
-  } else {
+  } else if (!sofaGroup) {
     reticle.visible = false;
   }
 
-  /* camera position */
+  // one-finger drag = move the sofa along the floor
+  if (sofaGroup && !twoFinger && transientHitSource) {
+    const tHits = frame.getHitTestResultsForTransientInput(transientHitSource);
+    for (const inputResult of tHits) {
+      if (inputResult.results.length) {
+        const p = inputResult.results[0].getPose(refSpace);
+        if (p) {
+          sofaGroup.position.set(p.transform.position.x, p.transform.position.y, p.transform.position.z);
+          sofaCenter.set(p.transform.position.x, p.transform.position.y + DIMS.h/2, p.transform.position.z);
+          if (ropeAnchor) ropeAnchor.position.copy(sofaCenter);
+        }
+        break;
+      }
+    }
+  }
+
+  // camera position
   const cp = pose.transform.position;
   tmpPos.set(cp.x, cp.y, cp.z);
 
-  /* update rope + readout */
-  if (placedSofa && ropeLine) {
-    const arr = ropeLine.geometry.attributes.position.array;
-    arr[0] = tmpPos.x; arr[1] = tmpPos.y; arr[2] = tmpPos.z;
-    arr[3] = sofaCenter.x; arr[4] = sofaCenter.y; arr[5] = sofaCenter.z;
-    ropeLine.geometry.attributes.position.needsUpdate = true;
-
-    const dist = tmpPos.distanceTo(sofaCenter);
-    distVal.innerHTML = dist.toFixed(2) + '<small>m</small>';
-    footVal.textContent = `Footprint ${DIMS.w.toFixed(2)} \u00d7 ${DIMS.d.toFixed(2)} m`;
+  // rope: from just below the phone to the sofa centre
+  if (sofaGroup && ropeMesh) {
+    ropeStart.set(cp.x, cp.y - 0.15, cp.z);
+    dirVec.subVectors(sofaCenter, ropeStart);
+    const len = dirVec.length();
+    if (len > 0.05) {
+      ropeMesh.visible = true;
+      ropeMesh.position.copy(ropeStart).addScaledVector(dirVec, 0.5);
+      ropeMesh.scale.set(1, len, 1);
+      ropeMesh.quaternion.setFromUnitVectors(upVec, dirVec.normalize());
+    } else {
+      ropeMesh.visible = false;
+    }
+    if (frameCount % 6 === 0) {
+      distVal.innerHTML = tmpPos.distanceTo(sofaCenter).toFixed(2) + '<small>m</small>';
+    }
   }
 
   renderer.render(scene, camera);
 }
 
-/* ---- CLEANUP ---- */
+function placeBtnVisible(){ return !placeBtn.classList.contains('hidden'); }
+
+/* ---- CLEANUP (dispose GL context so the preview never dies) ---- */
 function cleanupAR() {
   overlay.classList.remove('on');
-  if (renderer) renderer.setAnimationLoop(null);
-  if (hitTestSource) { try { hitTestSource.cancel(); } catch {} hitTestSource = null; }
-  placedSofa = null; footprintLine = null; ropeLine = null;
+  if (renderer) {
+    renderer.setAnimationLoop(null);
+    renderer.dispose();
+    renderer = null;
+  }
+  if (hitTestSource && hitTestSource.cancel) hitTestSource.cancel();
+  hitTestSource = null; transientHitSource = null;
+  scene = null; camera = null; reticle = null;
+  sofaGroup = null; ropeMesh = null; ropeAnchor = null;
+  twoFinger = false;
   reticleHint.style.opacity = '1';
   reticleHint.textContent = 'Move your phone slowly to find the floor';
   placeBtn.classList.add('hidden');
   placeBtn.querySelector('svg').style.display = '';
   placeBtn.childNodes[2].nodeValue = ' Place here';
-  session = null; renderer = null; scene = null;
+  session = null;
+  previewPaused = false;
 }
 closeBtn.addEventListener('click', () => { if (session) session.end(); });
 
 /* ---- SHEET ---- */
 function showSheet(title, body) {
   sheetTitle.textContent = title;
-  sheetBody.textContent  = body;
+  sheetBody.textContent = body;
   sheet.classList.add('up');
 }
 sheetOk.addEventListener('click', () => sheet.classList.remove('up'));
