@@ -253,11 +253,37 @@ function buildPreview(scene) {
   cam.position.set(radius * 0.9, radius * 0.55, radius * 1.5);
   cam.lookAt(0, 0, 0);
 
-  let t = 0;
+  // Drag to rotate (touch + mouse), gentle auto-spin when idle
+  let rotY = 0.5, velocity = 0, dragging = false, lastX = 0, idleTimer = 0;
+  canvas.style.touchAction = 'pan-y'; // keep vertical page scroll working
+
+  function onDown(x){ dragging = true; lastX = x; velocity = 0; }
+  function onMove(x){
+    if (!dragging) return;
+    const dx = x - lastX; lastX = x;
+    rotY += dx * 0.008;
+    velocity = dx * 0.008;
+    idleTimer = 0;
+  }
+  function onUp(){ dragging = false; }
+
+  canvas.addEventListener('pointerdown', e => onDown(e.clientX));
+  addEventListener('pointermove',  e => onMove(e.clientX));
+  addEventListener('pointerup',    onUp);
+  canvas.addEventListener('touchstart', e => onDown(e.touches[0].clientX), {passive:true});
+  canvas.addEventListener('touchmove',  e => onMove(e.touches[0].clientX), {passive:true});
+  canvas.addEventListener('touchend',   onUp);
+
   (function loop() {
     requestAnimationFrame(loop);
-    t += 0.0045;
-    holder.rotation.y = Math.sin(t) * 0.55 + 0.5;
+    if (!dragging) {
+      // inertia, then ease into a slow ambient spin after ~2s idle
+      velocity *= 0.95;
+      rotY += velocity;
+      idleTimer++;
+      if (idleTimer > 120) rotY += 0.0025;
+    }
+    holder.rotation.y = rotY;
     r.render(world, cam);
   })();
 }
@@ -352,9 +378,9 @@ async function startAR() {
 function placeSofa() {
   if (!reticle.visible) return;
 
-  const pos = new THREE.Vector3().setFromMatrixPosition(
-    new THREE.Matrix4().fromArray(reticle.matrix)
-  );
+  // reticle.matrix IS a Matrix4 — read its position directly.
+  // (Passing it to fromArray() produced NaN: that was the invisible-sofa bug.)
+  const pos = new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
 
   if (!placedSofa) {
     placedSofa = modelTemplate.clone(true);
@@ -363,7 +389,19 @@ function placeSofa() {
     buildRope();
   }
 
-  placedSofa.position.copy(pos);
+  // Anchor the sofa by its own bounding box so its BASE sits on the
+  // floor and its centre sits on the reticle — regardless of where
+  // Tripo placed the model origin.
+  placedSofa.position.set(0, 0, 0);
+  placedSofa.updateMatrixWorld(true);
+  const bb = new THREE.Box3().setFromObject(placedSofa);
+  const c  = bb.getCenter(new THREE.Vector3());
+  placedSofa.position.set(
+    pos.x - c.x,
+    pos.y - bb.min.y,
+    pos.z - c.z
+  );
+
   footprintLine.position.copy(pos);
   footprintLine.position.y += 0.006;
   sofaCenter.copy(pos);
