@@ -148,7 +148,7 @@
 <section id="landing">
   <div class="topline">
     <span class="eyebrow">Furniture AR</span>
-    <span class="meta">Kolkata · Beta · v18</span>
+    <span class="meta">Kolkata · Beta · v19</span>
   </div>
   <div class="stage">
     <canvas id="preview"></canvas>
@@ -182,7 +182,7 @@
     <div class="readout">
       <div class="rk">Distance to sofa</div>
       <div class="rv" id="distVal">&mdash;<small>m</small></div>
-      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v18</div>
+      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v19</div>
     </div>
     <button class="close" id="closeAR" aria-label="Exit AR">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -330,7 +330,24 @@ let previewPaused = false;
 let pvState = null;
 function ensurePreview() {
   if (pvState) return pvState;
-  const canvas = document.getElementById('preview');
+  let canvas = document.getElementById('preview');
+  // A canvas can only ever yield ONE GPU context. After an AR session the
+  // old context's textures may be gone, and "recreating" a renderer on the
+  // same canvas inherits that corrupted context (black sofa). A truly fresh
+  // start requires replacing the canvas ELEMENT itself.
+  if (canvas.dataset.used === '1') {
+    const fresh = canvas.cloneNode(false);
+    canvas.parentNode.replaceChild(fresh, canvas);
+    canvas = fresh;
+  }
+  canvas.dataset.used = '1';
+  // if Android ever formally kills this context, self-heal
+  canvas.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    if (pvState) { try { pvState.r.dispose(); } catch(_) {} }
+    pvState = null;
+    renderLanding();
+  }, false);
   const r = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   r.setPixelRatio(Math.min(devicePixelRatio, 2));
   const cam = new THREE.PerspectiveCamera(38, 1, 0.01, 100);
@@ -452,7 +469,7 @@ function buildStrip() {
 }
 function footText() {
   const d = cur().dims;
-  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v18';
+  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v19';
 }
 function renderLanding() {
   const p = cur();
