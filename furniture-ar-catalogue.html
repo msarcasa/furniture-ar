@@ -148,7 +148,7 @@
 <section id="landing">
   <div class="topline">
     <span class="eyebrow">Furniture AR</span>
-    <span class="meta">Kolkata · Beta · v19</span>
+    <span class="meta">Kolkata · Beta · v20</span>
   </div>
   <div class="stage">
     <canvas id="preview"></canvas>
@@ -182,7 +182,7 @@
     <div class="readout">
       <div class="rk">Distance to sofa</div>
       <div class="rv" id="distVal">&mdash;<small>m</small></div>
-      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v19</div>
+      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v20</div>
     </div>
     <button class="close" id="closeAR" aria-label="Exit AR">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -362,6 +362,10 @@ function ensurePreview() {
   const st = { r, cam, world, holder, rotY: 0.5, velocity: 0, dragging: false, lastX: 0, idle: 0 };
 
   function resize() {
+    if (!canvas.isConnected) {            // this canvas was replaced
+      removeEventListener('resize', resize);
+      return;
+    }
     const s = canvas.parentElement.getBoundingClientRect();
     if (s.width === 0) return;
     r.setSize(s.width, s.height, false);
@@ -469,7 +473,7 @@ function buildStrip() {
 }
 function footText() {
   const d = cur().dims;
-  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v19';
+  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v20';
 }
 function renderLanding() {
   const p = cur();
