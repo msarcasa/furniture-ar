@@ -115,7 +115,7 @@
     -webkit-mask-image:linear-gradient(90deg,transparent,#000 24%,#000 76%,transparent);
     mask-image:linear-gradient(90deg,transparent,#000 24%,#000 76%,transparent);}
   .strip::-webkit-scrollbar{display:none;}
-  .chip{flex:0 0 auto;scroll-snap-align:center;border:none;background:none;color:var(--bone);opacity:.4;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:.04em;padding:8px 13px;cursor:pointer;text-shadow:0 1px 10px rgba(0,0,0,.55);transition:color .2s ease;}
+  .chip{flex:0 0 auto;scroll-snap-align:center;border:none;background:none;color:var(--bone);opacity:.4;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:.04em;padding:8px 13px;cursor:pointer;text-shadow:0 1px 10px rgba(0,0,0,.55);transition:color .2s ease;will-change:transform,opacity;}
   .chip.on{color:var(--brass-soft);}
   .ar-row{display:flex;gap:10px;align-items:center;}
   .pill-ghost{pointer-events:auto;border:1px solid rgba(243,239,230,0.3);background:rgba(20,17,13,0.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--bone);font-family:'Inter',sans-serif;font-weight:600;font-size:13px;letter-spacing:.1em;text-transform:uppercase;padding:16px 22px;border-radius:100px;cursor:pointer;}
@@ -148,7 +148,7 @@
 <section id="landing">
   <div class="topline">
     <span class="eyebrow">Furniture AR</span>
-    <span class="meta">Kolkata · Beta · v14</span>
+    <span class="meta">Kolkata · Beta · v15</span>
   </div>
   <div class="stage">
     <canvas id="preview"></canvas>
@@ -182,7 +182,7 @@
     <div class="readout">
       <div class="rk">Distance to sofa</div>
       <div class="rv" id="distVal">&mdash;<small>m</small></div>
-      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v14</div>
+      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v15</div>
     </div>
     <button class="close" id="closeAR" aria-label="Exit AR">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -294,24 +294,31 @@ loader.setDRACOLoader(dracoLoader);
 
 const modelCache = new Map();   // product id -> loaded template scene
 const inflight   = new Map();   // product id -> pending promise (dedup)
+const progressLs = new Map();   // product id -> Set of progress listeners
 let modelLoadError = false;
 
 function loadProduct(p, onProgress) {
+  if (onProgress) {
+    if (!progressLs.has(p.id)) progressLs.set(p.id, new Set());
+    progressLs.get(p.id).add(onProgress);
+  }
   if (modelCache.has(p.id)) return Promise.resolve(modelCache.get(p.id));
   if (inflight.has(p.id)) return inflight.get(p.id);
   const pr = new Promise((resolve, reject) => {
     loader.load(p.url,
       (gltf) => {
         modelCache.set(p.id, gltf.scene);
-        inflight.delete(p.id);
+        inflight.delete(p.id); progressLs.delete(p.id);
         resolve(gltf.scene);
       },
       (ev) => {
-        if (onProgress && ev && ev.total) {
-          onProgress(Math.min(99, Math.round(ev.loaded / ev.total * 100)));
+        if (ev && ev.total) {
+          const pct = Math.min(99, Math.round(ev.loaded / ev.total * 100));
+          const ls = progressLs.get(p.id);
+          if (ls) ls.forEach(f => { try { f(pct); } catch(_) {} });
         }
       },
-      (err) => { inflight.delete(p.id); reject(err); }
+      (err) => { inflight.delete(p.id); progressLs.delete(p.id); reject(err); }
     );
   });
   inflight.set(p.id, pr);
@@ -444,7 +451,7 @@ function buildStrip() {
 }
 function footText() {
   const d = cur().dims;
-  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v14';
+  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v15';
 }
 function renderLanding() {
   const p = cur();
@@ -494,6 +501,7 @@ async function switchProduct(i) {
     });
     footVal.innerHTML = footText();
     if (sofaGroup) buildIntoGroup(tpl);
+    if (navigator.vibrate) navigator.vibrate(25);
     reticleHint.textContent = sofaGroup
       ? 'Drag to move \u00b7 twist two fingers to rotate'
       : 'Tap "Place here" to drop the sofa';
@@ -733,6 +741,7 @@ function placeSofa() {
   }
 
   sofaGroup.position.copy(pos);
+  if (firstPlacement && navigator.vibrate) navigator.vibrate(25);
   if (firstPlacement) {
     // face the person placing it
     sofaGroup.rotation.y = Math.atan2(lastCam.x - pos.x, lastCam.z - pos.z) + cur().frontOffset;
@@ -1085,6 +1094,7 @@ function cleanupAR() {
   placeBtn.childNodes[2].nodeValue = ' Place here';
   session = null;
   previewPaused = false;
+  renderLanding();   // resync landing with whichever product was active in AR
 }
 closeBtn.addEventListener('click', () => { if (session) session.end(); });
 
