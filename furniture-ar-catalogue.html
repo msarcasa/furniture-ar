@@ -148,7 +148,7 @@
 <section id="landing">
   <div class="topline">
     <span class="eyebrow">Furniture AR</span>
-    <span class="meta">Kolkata · Beta · v15</span>
+    <span class="meta">Kolkata · Beta · v16</span>
   </div>
   <div class="stage">
     <canvas id="preview"></canvas>
@@ -182,7 +182,7 @@
     <div class="readout">
       <div class="rk">Distance to sofa</div>
       <div class="rv" id="distVal">&mdash;<small>m</small></div>
-      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v15</div>
+      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v16</div>
     </div>
     <button class="close" id="closeAR" aria-label="Exit AR">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -451,7 +451,7 @@ function buildStrip() {
 }
 function footText() {
   const d = cur().dims;
-  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v15';
+  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v16';
 }
 function renderLanding() {
   const p = cur();
@@ -501,7 +501,7 @@ async function switchProduct(i) {
     });
     footVal.innerHTML = footText();
     if (sofaGroup) buildIntoGroup(tpl);
-    if (navigator.vibrate) navigator.vibrate(25);
+    if (navigator.vibrate) navigator.vibrate(50);
     reticleHint.textContent = sofaGroup
       ? 'Drag to move \u00b7 twist two fingers to rotate'
       : 'Tap "Place here" to drop the sofa';
@@ -741,7 +741,7 @@ function placeSofa() {
   }
 
   sofaGroup.position.copy(pos);
-  if (firstPlacement && navigator.vibrate) navigator.vibrate(25);
+  if (firstPlacement && navigator.vibrate) navigator.vibrate(50);
   if (firstPlacement) {
     // face the person placing it
     sofaGroup.rotation.y = Math.atan2(lastCam.x - pos.x, lastCam.z - pos.z) + cur().frontOffset;
