@@ -111,9 +111,12 @@
   .dot{width:6px;height:6px;border-radius:50%;background:rgba(20,17,13,0.18);transition:all .25s ease;}
   .dot.on{background:var(--brass);width:18px;border-radius:4px;}
   .linklike{margin:10px auto 0;display:block;background:none;border:none;font-family:'Inter',sans-serif;font-size:12px;letter-spacing:.06em;color:var(--brass);text-decoration:underline;text-underline-offset:3px;cursor:pointer;}
-  .strip{pointer-events:auto;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;max-width:92vw;}
-  .chip{pointer-events:auto;border:1px solid rgba(243,239,230,0.25);background:rgba(20,17,13,0.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--bone);font-family:'Inter',sans-serif;font-size:12px;letter-spacing:.05em;padding:9px 14px;border-radius:100px;cursor:pointer;transition:all .2s ease;}
-  .chip.on{background:var(--brass);color:#1b1306;border-color:var(--brass);font-weight:700;}
+  .strip{pointer-events:auto;overflow-x:auto;display:flex;align-items:center;gap:2px;width:88vw;padding:4px 42vw;scroll-snap-type:x mandatory;scrollbar-width:none;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 24%,#000 76%,transparent);
+    mask-image:linear-gradient(90deg,transparent,#000 24%,#000 76%,transparent);}
+  .strip::-webkit-scrollbar{display:none;}
+  .chip{flex:0 0 auto;scroll-snap-align:center;border:none;background:none;color:var(--bone);opacity:.4;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;letter-spacing:.04em;padding:8px 13px;cursor:pointer;text-shadow:0 1px 10px rgba(0,0,0,.55);transition:color .2s ease;}
+  .chip.on{color:var(--brass-soft);}
   .ar-row{display:flex;gap:10px;align-items:center;}
   .pill-ghost{pointer-events:auto;border:1px solid rgba(243,239,230,0.3);background:rgba(20,17,13,0.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--bone);font-family:'Inter',sans-serif;font-weight:600;font-size:13px;letter-spacing:.1em;text-transform:uppercase;padding:16px 22px;border-radius:100px;cursor:pointer;}
   #guide{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(20,17,13,0.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:auto;z-index:30;}
@@ -179,7 +182,7 @@
     <div class="readout">
       <div class="rk">Distance to sofa</div>
       <div class="rv" id="distVal">&mdash;<small>m</small></div>
-      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v10</div>
+      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v11</div>
     </div>
     <button class="close" id="closeAR" aria-label="Exit AR">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -374,6 +377,33 @@ function renderDots() {
 }
 function renderChips() {
   stripEl.querySelectorAll('.chip').forEach((el,i)=>el.classList.toggle('on', i===pIdx));
+  updateStripVisual();
+  centerChip(pIdx);
+}
+/* continuous scale/fade by distance from centre (Instagram-dot feel) */
+function updateStripVisual() {
+  const mid = stripEl.scrollLeft + stripEl.clientWidth / 2;
+  stripEl.querySelectorAll('.chip').forEach(el => {
+    const c = el.offsetLeft + el.offsetWidth / 2;
+    const t = Math.max(0, 1 - Math.abs(c - mid) / 160);
+    el.style.opacity = (0.4 + 0.6 * t).toFixed(2);
+    el.style.transform = 'scale(' + (0.82 + 0.3 * t).toFixed(3) + ')';
+  });
+}
+function nearestChipIdx() {
+  const mid = stripEl.scrollLeft + stripEl.clientWidth / 2;
+  let best = 0, bestD = Infinity;
+  stripEl.querySelectorAll('.chip').forEach((el,i) => {
+    const d = Math.abs(el.offsetLeft + el.offsetWidth/2 - mid);
+    if (d < bestD) { bestD = d; best = i; }
+  });
+  return best;
+}
+function centerChip(i, instant) {
+  const el = stripEl.querySelectorAll('.chip')[i];
+  if (!el) return;
+  const target = el.offsetLeft + el.offsetWidth/2 - stripEl.clientWidth/2;
+  stripEl.scrollTo({ left: target, behavior: instant ? 'auto' : 'smooth' });
 }
 function buildStrip() {
   stripEl.innerHTML = '';
@@ -387,7 +417,7 @@ function buildStrip() {
 }
 function footText() {
   const d = cur().dims;
-  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v10';
+  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v11';
 }
 function renderLanding() {
   const p = cur();
@@ -439,16 +469,18 @@ async function switchProduct(i) {
 document.getElementById('chevPrev').addEventListener('click', ()=>switchProduct(pIdx-1));
 document.getElementById('chevNext').addEventListener('click', ()=>switchProduct(pIdx+1));
 
-// reels-style swipe on the AR product strip, with return to previous
-let stripX = null;
-stripEl.addEventListener('touchstart', e => { stripX = e.touches[0].clientX; }, {passive:true});
-stripEl.addEventListener('touchend', e => {
-  if (stripX === null) return;
-  const dx = e.changedTouches[0].clientX - stripX; stripX = null;
-  if (dx < -45) switchProduct(pIdx + 1);
-  else if (dx > 45) switchProduct(pIdx - 1);
+// free slide + snap: whichever label settles at centre becomes the sofa
+let stripSettle = null;
+stripEl.addEventListener('scroll', () => {
+  updateStripVisual();
+  clearTimeout(stripSettle);
+  stripSettle = setTimeout(() => {
+    const i = nearestChipIdx();
+    if (i !== pIdx) switchProduct(i);
+  }, 150);
 }, {passive:true});
 buildStrip();
+requestAnimationFrame(() => { centerChip(pIdx, true); updateStripVisual(); });
 
 /* ---- ENQUIRY (WhatsApp deep link; leaving the app ends AR - OS rule) ---- */
 function enquire() {
@@ -604,6 +636,16 @@ document.addEventListener('touchend', (e) => {
    Group position/rotation are untouched, so swapping products in-session
    keeps the same spot and orientation = instant A/B comparison. */
 function buildIntoGroup(tpl) {
+  // CRITICAL: anchoring math measures WORLD coordinates. During a swap the
+  // group is already placed+rotated in the room, which would shove the new
+  // sofa and its footprint apart (the "invisible circle" bug). Zero the
+  // group's transform for the rebuild, restore it after.
+  const keepPos = sofaGroup.position.clone();
+  const keepRot = sofaGroup.rotation.y;
+  sofaGroup.position.set(0, 0, 0);
+  sofaGroup.rotation.y = 0;
+  sofaGroup.updateMatrixWorld(true);
+
   while (sofaGroup.children.length) sofaGroup.remove(sofaGroup.children[0]);
   outlinePts = null; anchorLocal = null;
   const sofa = tpl.clone(true);
@@ -632,6 +674,11 @@ function buildIntoGroup(tpl) {
     outlinePts = fp.pts;
     anchorLocal = computeFrontAnchor(outlinePts, localBox, cur().frontOffset);
   }
+
+  // restore the room placement
+  sofaGroup.position.copy(keepPos);
+  sofaGroup.rotation.y = keepRot;
+  sofaGroup.updateMatrixWorld(true);
 }
 
 function placeSofa() {
@@ -1023,7 +1070,5 @@ sheetOk.addEventListener('click', () => sheet.classList.remove('up'));
 renderLanding();
 PRODUCTS.slice(1).forEach(p => loadProduct(p).catch(()=>{}));
 </script>
-
-  
 </body>
 </html>
