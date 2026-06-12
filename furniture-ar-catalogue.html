@@ -148,7 +148,7 @@
 <section id="landing">
   <div class="topline">
     <span class="eyebrow">Furniture AR</span>
-    <span class="meta">Kolkata · Beta · v16</span>
+    <span class="meta">Kolkata · Beta · v17</span>
   </div>
   <div class="stage">
     <canvas id="preview"></canvas>
@@ -182,7 +182,7 @@
     <div class="readout">
       <div class="rk">Distance to sofa</div>
       <div class="rv" id="distVal">&mdash;<small>m</small></div>
-      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v16</div>
+      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v17</div>
     </div>
     <button class="close" id="closeAR" aria-label="Exit AR">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -369,6 +369,7 @@ function ensurePreview() {
   canvas.addEventListener('touchend', up);
 
   (function loop() {
+    if (pvState !== st) return;   // superseded by a rebuilt preview
     requestAnimationFrame(loop);
     if (previewPaused) return;
     if (!st.dragging) {
@@ -451,7 +452,7 @@ function buildStrip() {
 }
 function footText() {
   const d = cur().dims;
-  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v16';
+  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v17';
 }
 function renderLanding() {
   const p = cur();
@@ -597,6 +598,7 @@ async function startAR() {
   let guideSeen = false;
   try { guideSeen = !!localStorage.getItem('arGuideSeen'); } catch(e) {}
   if (!guideSeen) guideEl.classList.add('on');
+  requestAnimationFrame(() => { centerChip(pIdx, true); updateStripVisual(); });
   placeBtn.classList.add('hidden');
   distVal.innerHTML = '&mdash;<small>m</small>';
 
@@ -1094,6 +1096,9 @@ function cleanupAR() {
   placeBtn.childNodes[2].nodeValue = ' Place here';
   session = null;
   previewPaused = false;
+  // rebuild the preview from scratch: an AR session can evict the landing
+  // context's GPU textures (seen as a black sofa, esp. with heavy assets)
+  if (pvState) { try { pvState.r.dispose(); } catch(e) {} pvState = null; }
   renderLanding();   // resync landing with whichever product was active in AR
 }
 closeBtn.addEventListener('click', () => { if (session) session.end(); });
