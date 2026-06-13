@@ -148,7 +148,7 @@
 <section id="landing">
   <div class="topline">
     <span class="eyebrow">Furniture AR</span>
-    <span class="meta">Kolkata · Beta · v21</span>
+    <span class="meta">Kolkata · Beta · v22</span>
   </div>
   <div class="stage">
     <canvas id="preview"></canvas>
@@ -182,7 +182,7 @@
     <div class="readout">
       <div class="rk">Distance to sofa</div>
       <div class="rv" id="distVal">&mdash;<small>m</small></div>
-      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v21</div>
+      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v22</div>
     </div>
     <button class="close" id="closeAR" aria-label="Exit AR">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -334,6 +334,7 @@ const PRODUCTS = [
 ];
 let pIdx = 0;
 const cur = () => PRODUCTS[pIdx];
+const arViewed = new Set();   // ids shown in AR -> their GPU textures die with the AR context
 
 /* ---- DOM ---- */
 const enterBtn    = document.getElementById('enterAR');
@@ -550,7 +551,7 @@ function buildStrip() {
 }
 function footText() {
   const d = cur().dims;
-  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v21';
+  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v22';
 }
 function renderLanding() {
   const p = cur();
@@ -781,6 +782,7 @@ document.addEventListener('touchend', (e) => {
    Group position/rotation are untouched, so swapping products in-session
    keeps the same spot and orientation = instant A/B comparison. */
 function buildIntoGroup(tpl) {
+  arViewed.add(cur().id);   // this product was uploaded to the AR GPU context
   // CRITICAL: anchoring math measures WORLD coordinates. During a swap the
   // group is already placed+rotated in the room, which would shove the new
   // sofa and its footprint apart (the "invisible circle" bug). Zero the
@@ -1194,10 +1196,24 @@ function cleanupAR() {
   placeBtn.childNodes[2].nodeValue = ' Place here';
   session = null;
   previewPaused = false;
-  // rebuild the preview from scratch: an AR session can evict the landing
-  // context's GPU textures (seen as a black sofa, esp. with heavy assets)
+  // The AR context's destruction kills the GPU textures of every sofa shown
+  // in it (Three.js shares texture handles below the clone layer, so copies
+  // don't help). Evict those sofas from the cache so they RE-DOWNLOAD clean
+  // from the network on next view; untouched sofas stay cached.
+  arViewed.forEach(id => {
+    const m = modelCache.get(id);
+    if (m) { try { m.traverse(o => {
+      if (o.isMesh) {
+        if (o.geometry) o.geometry.dispose();
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach(mat => { if (mat) mat.dispose && mat.dispose(); });
+      }
+    }); } catch(e) {} }
+    modelCache.delete(id);
+  });
+  arViewed.clear();
   if (pvState) { try { pvState.r.dispose(); } catch(e) {} pvState = null; }
-  renderLanding();   // resync landing with whichever product was active in AR
+  renderLanding();   // reloads the active sofa fresh if it was evicted
 }
 closeBtn.addEventListener('click', () => { if (session) session.end(); });
 
