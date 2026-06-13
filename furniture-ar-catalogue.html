@@ -148,7 +148,7 @@
 <section id="landing">
   <div class="topline">
     <span class="eyebrow">Furniture AR</span>
-    <span class="meta">Kolkata · Beta · v20</span>
+    <span class="meta">Kolkata · Beta · v21</span>
   </div>
   <div class="stage">
     <canvas id="preview"></canvas>
@@ -182,7 +182,7 @@
     <div class="readout">
       <div class="rk">Distance to sofa</div>
       <div class="rv" id="distVal">&mdash;<small>m</small></div>
-      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v20</div>
+      <div class="rsub" id="footVal">Fits within 2.67 &times; 2.03 m &middot; v21</div>
     </div>
     <button class="close" id="closeAR" aria-label="Exit AR">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
@@ -256,80 +256,17 @@ const PRODUCTS = [
     title: 'Dexter <em>Tufted</em><br>Sectional',
     plain: 'Dexter Tufted Sectional',
     dims: { w: 2.67, d: 2.03, h: 0.94 },
-    url: 'https://msarcasa.github.io/furniture-ar/dexter_lshape-v1.glb',
-    frontOffset: 0,    // VERIFY FIRST — sofa #1 for the new standard pipeline
+    url: 'https://msarcasa.github.io/furniture-ar/dexter_optimised.glb',
+    frontOffset: -Math.PI / 2,          // VERIFIED on device
   },
   {
-    id: 'aristo1', short: 'Aristo 1-Seater',
-    type: '1-Seater',
-    title: 'Aristo <em>Classic</em><br>Armchair',
-    plain: 'Aristo Classic Armchair',
-    dims: { w: 1.04, d: 0.89, h: 0.81 },
-    url: 'https://msarcasa.github.io/furniture-ar/aristo_1str-v1.glb',
-    frontOffset: 0,
-  },
-  {
-    id: 'aristo3', short: 'Aristo 3-Seater',
+    id: 'navy3', short: 'Navy 3-Seater',
     type: '3-Seater',
-    title: 'Aristo <em>Classic</em><br>Three-Seater',
-    plain: 'Aristo Classic 3-Seater',
-    dims: { w: 2.03, d: 0.89, h: 0.81 },
-    url: 'https://msarcasa.github.io/furniture-ar/aristo_3str-v1.glb',
-    frontOffset: 0,
-  },
-  {
-    id: 'lancia2', short: 'Lancia 2-Seater',
-    type: '2-Seater',
-    title: 'Lancia <em>Velvet</em><br>Two-Seater',
-    plain: 'Lancia Velvet 2-Seater',
-    dims: { w: 1.57, d: 0.79, h: 0.86 },
-    url: 'https://msarcasa.github.io/furniture-ar/lancia_2str-v1.glb',
-    frontOffset: 0,
-  },
-  {
-    id: 'lancia3', short: 'Lancia 3-Seater',
-    type: '3-Seater',
-    title: 'Lancia <em>Velvet</em><br>Three-Seater',
-    plain: 'Lancia Velvet 3-Seater',
-    dims: { w: 2.11, d: 0.79, h: 0.86 },
-    url: 'https://msarcasa.github.io/furniture-ar/lancia_3str-v1.glb',
-    frontOffset: 0,
-  },
-  {
-    id: 'orion', short: 'Orion L',
-    type: 'L-Sectional',
-    title: 'Orion <em>Modern</em><br>Sectional',
-    plain: 'Orion Modern Sectional',
-    dims: { w: 2.5, d: 1.6, h: 0.94 },
-    url: 'https://msarcasa.github.io/furniture-ar/orion_lshape-v1.glb',
-    frontOffset: 0,
-  },
-  {
-    id: 'tokyo2', short: 'Tokyo 2-Seater',
-    type: '2-Seater',
-    title: 'Tokyo <em>Minimal</em><br>Two-Seater',
-    plain: 'Tokyo Minimal 2-Seater',
-    dims: { w: 1.5, d: 0.91, h: 0.91 },
-    url: 'https://msarcasa.github.io/furniture-ar/tokyo_2str-v1.glb',
-    frontOffset: 0,
-  },
-  {
-    id: 'tokyo3', short: 'Tokyo 3-Seater',
-    type: '3-Seater',
-    title: 'Tokyo <em>Minimal</em><br>Three-Seater',
-    plain: 'Tokyo Minimal 3-Seater',
-    dims: { w: 2.03, d: 0.91, h: 0.91 },
-    url: 'https://msarcasa.github.io/furniture-ar/tokyo_3str-v1.glb',
-    frontOffset: 0,
-  },
-  {
-    id: 'zuba', short: 'Zuba L',
-    type: 'L-Sectional',
-    title: 'Zuba <em>Diamond</em><br>Sectional',
-    plain: 'Zuba Diamond Sectional',
-    dims: { w: 2.81, d: 2.3, h: 0.96 },
-    url: 'https://msarcasa.github.io/furniture-ar/zuba_lshape-v1.glb',
-    frontOffset: 0,
+    title: 'Navy <em>Classic</em><br>Three-Seater',
+    plain: 'Navy Classic 3-Seater',
+    dims: { w: 1.83, d: 0.81, h: 0.84 },
+    url: 'https://msarcasa.github.io/furniture-ar/corrected-v1.glb',
+    frontOffset: 0,                     // CALIBRATE on device
   },
 ];
 let pIdx = 0;
@@ -469,8 +406,22 @@ function ensurePreview() {
   return st;
 }
 
+function refreshTextures(root) {
+  root.traverse(o => {
+    if (!o.isMesh || !o.material) return;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    mats.forEach(m => {
+      ['map','normalMap','roughnessMap','metalnessMap','aoMap','emissiveMap'].forEach(k => {
+        if (m[k]) { m[k] = m[k].clone(); m[k].needsUpdate = true; }
+      });
+      m.needsUpdate = true;
+    });
+  });
+}
+
 function setPreviewModel(modelScene) {
   const st = ensurePreview();
+  refreshTextures(modelScene);   // private texture copies — AR teardown can't kill them
   while (st.holder.children.length) st.holder.remove(st.holder.children[0]);
   const box  = new THREE.Box3().setFromObject(modelScene);
   const c    = box.getCenter(new THREE.Vector3());
@@ -536,7 +487,7 @@ function buildStrip() {
 }
 function footText() {
   const d = cur().dims;
-  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v20';
+  return 'Fits within ' + d.w + ' \u00d7 ' + d.d + ' m \u00b7 v21';
 }
 function renderLanding() {
   const p = cur();
